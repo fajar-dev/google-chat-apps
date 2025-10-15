@@ -43,7 +43,8 @@ const app = express()
 
 app.post('/', async (req, res) => {
   let event = req.body;
-  
+  console.log('Received event:', JSON.stringify(event, null, 2));
+
   try {
     let body = {};
     let eventType = event.type || event.chat?.appCommandPayload ? 'MESSAGE' : null;
@@ -57,6 +58,7 @@ app.post('/', async (req, res) => {
     }
 
     if (Object.keys(body).length === 0) {
+        console.warn('Handler returned empty body.');
         return res.json({});
     }
 
@@ -71,6 +73,7 @@ function onMessage(event) {
   const message = event.chat?.message;
 
   if (!message) {
+    console.error("Message object not found in event payload.");
     return { text: "Pesan tidak ditemukan dalam payload." };
   }
 
