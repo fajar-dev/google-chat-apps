@@ -47,13 +47,17 @@ app.post('/', async (req, res) => {
 
   try {
     let body = {};
-    let eventType = event.type || event.chat?.appCommandPayload ? 'MESSAGE' : null;
+    
+    let eventType = event.type; 
+    if (!eventType && event.chat?.appCommandPayload) {
+        eventType = 'MESSAGE';
+    }
 
     if (eventType === 'MESSAGE') {
       body = onMessage(event);
-    } else if (event.type === 'CARD_CLICKED') {
+    } else if (eventType === 'CARD_CLICKED') {
       body = onCardClick(event);
-    } else if (event.type === 'ADDED_TO_SPACE' || event.type === 'REMOVED_FROM_SPACE') {
+    } else if (eventType === 'ADDED_TO_SPACE' || eventType === 'REMOVED_FROM_SPACE') {
       body = { text: "Terima kasih sudah menambahkan saya!" };
     }
 
