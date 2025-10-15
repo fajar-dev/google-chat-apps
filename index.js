@@ -136,13 +136,14 @@ function openInitialDialog() {
   return { actionResponse: {
     type: "DIALOG",
     dialogAction: { dialog: { body: { sections: [{
-      header: "Add new contact",
-      widgets: CONTACT_FORM_WIDGETS.concat([{
-        buttonList: { buttons: [{
-          text: "Review and submit",
-          onClick: { action: { function: "openConfirmation" }}
-        }]}
-      }])
+      widgets: [{ textParagraph: { text: "<b>Add new contact</b>" }}].concat(
+        CONTACT_FORM_WIDGETS.concat([{
+          buttonList: { buttons: [{
+            text: "Review and submit",
+            onClick: { action: { function: "openConfirmation" }}
+          }]}
+        }])
+      )
     }]}}}
   }};
 }
