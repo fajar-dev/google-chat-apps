@@ -19,10 +19,34 @@ app.post('/', async (req, res) => {
   let body = { text: "Unhandled event" };
 
   try {
-    if (event.type === 'MESSAGE') {
-      body = onMessage(event);
-    } else if (event.type === 'CARD_CLICKED') {
-      body = onCardClick(event);
+    // === AUTO-DETECT STRUCTURE ===
+    let normalized = {};
+
+    if (event.message) {
+      // Struktur lama (Google Chat classic)
+      normalized = event;
+    } else if (event.chat?.appCommandPayload) {
+      // Struktur baru (Google Chat API v2+)
+      const payload = event.chat.appCommandPayload;
+      normalized = {
+        type: 'MESSAGE',
+        message: payload.message,
+        user: event.chat.user,
+        space: payload.space,
+        isDialogEvent: payload.isDialogEvent,
+        dialogEventType: payload.dialogEventType,
+      };
+    } else {
+      console.warn("⚠️ Tidak dikenali event formatnya");
+    }
+
+    // === PANGGIL HANDLER ===
+    if (normalized.type === 'MESSAGE') {
+      body = onMessage(normalized);
+    } else if (normalized.type === 'CARD_CLICKED') {
+      body = onCardClick(normalized);
+    } else {
+      body = { text: "Unhandled event" };
     }
 
     console.log("=== RESPON ===");
