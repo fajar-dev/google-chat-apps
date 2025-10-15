@@ -70,7 +70,7 @@ app.post('/', async (req, res) => {
 });
 
 function onMessage(event) {
-  const message = event.chat?.message;
+  const message = event.chat?.appCommandPayload?.message || event.chat?.message;
 
   if (!message) {
     console.error("Message object not found in event payload.");
