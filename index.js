@@ -1,4 +1,4 @@
-const express = require('require');
+const express = require('express');
 const PORT = process.env.PORT || 8080;
 
 const CONTACT_FORM_WIDGETS = [
