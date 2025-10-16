@@ -1,66 +1,104 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const app = express();
-const port = 8080; 
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-app.use(bodyParser.json());
+// [START chat_avatar_app]
+const functions = require('@google-cloud/functions-framework');
 
-app.post('/webhook', (req, res) => {
-    const event = req.body;
-    let replyMessage = {}; 
+// Command IDs (configure these in Google Chat API)
+const ABOUT_COMMAND_ID = 1; // ID for the "/about" slash command
+const HELP_COMMAND_ID = 2; // ID for the "Help" quick command
 
-    // --- PENGAMBILAN DATA AMAN DARI EVENT ---
+/**
+ * Google Cloud Function that handles HTTP requests from Google Chat.
+ *
+ * @param {Object} req - The HTTP request object sent from Google Chat.
+ * @param {Object} res - The HTTP response object.
+ */
+functions.http('avatarApp', (req, res) => {
+  const event = req.body;
 
-    // 1. Coba ambil eventType dari root. Jika tidak ada, anggap "UNKNOWN" atau ambil dari tempat lain jika ada.
-    const eventType = event.type || (event.messagePayload ? 'MESSAGE_ALT' : 'UNKNOWN'); 
-    
-    // 2. Coba ambil data pesan dari lokasi yang berbeda (root.message atau chat.messagePayload.message)
-    const messagePayload = event.message || event.chat?.messagePayload?.message || {};
-    
-    // 3. Ambil teks pesan. Log Anda menunjukkan event.chat.messagePayload.message.text
-    const messageText = (messagePayload.text || '').trim().toLowerCase(); 
-    
-    const userDisplayName = (event.user && event.user.displayName) || 'Pengguna';
-
-    // --- LOG UNTUK DEBUGGING ---
-    console.log('--- Event Baru Diterima ---');
-    console.log('Event Type Ditebak:', eventType);
-    console.log('Pesan Diterima:', messageText);
-    console.log('Event Body Lengkap (Hanya untuk Debugging Awal):', JSON.stringify(event, null, 2));
-    
-    // --- LOGIKA RESPON BOT ---
-
-    // Gunakan eventType yang ditemukan (termasuk 'MESSAGE_ALT')
-    if (eventType === 'MESSAGE' || eventType === 'MESSAGE_ALT') {
-        
-        // Logika untuk /about
-        if (messageText.includes('/about')) {
-            replyMessage.text = "halo saya siap membantu anda";
-        
-        // Logika untuk /hist
-        } else if (messageText.includes('/hist')) {
-            replyMessage.text = "Ini adalah balasan untuk hist"; 
-
-        // Logika untuk balasan default 
-        } else {
-            replyMessage.text = "saya adalah bot"; 
-        }
-        
-    } else if (eventType === 'ADDED_TO_SPACE') {
-        replyMessage.text = `Halo ${userDisplayName}! Saya telah ditambahkan.`;
-        
-    } 
-
-    // --- Mengirim Balasan ---
-    if (Object.keys(replyMessage).length > 0) {
-        console.log('Mengirim Balasan:', replyMessage.text);
-        res.status(200).json(replyMessage);
-    } else {
-        console.log('Tidak ada balasan yang dikirim (200 OK).');
-        res.status(200).send({});
-    }
+  if (event.appCommandMetadata) {
+    handleAppCommands(event, res);
+  } else {
+    handleRegularMessage(event, res);
+  }
 });
 
-app.listen(port, () => {
-    console.log(`Google Chat Bot berjalan di http://localhost:${port}/webhook`);
-});
+// [START chat_avatar_slash_command]
+/**
+ * Handles slash and quick commands.
+ *
+ * @param {Object} event - The Google Chat event.
+ * @param {Object} res - The HTTP response object.
+ */
+function handleAppCommands(event, res) {
+  const {appCommandId, appCommandType} = event.appCommandMetadata;
+
+  switch (appCommandId) {
+    case ABOUT_COMMAND_ID:
+      return res.send({
+        privateMessageViewer: event.user,
+        text: 'The Avatar app replies to Google Chat messages.'
+      });
+    case HELP_COMMAND_ID:
+      return res.send({
+        privateMessageViewer: event.user,
+        text: 'The Avatar app replies to Google Chat messages.'
+      });
+  }
+}
+// [END chat_avatar_slash_command]
+
+/**
+ * Handles regular messages (not commands).
+ *
+ * @param {Object} event - The Google Chat event.
+ * @param {Object} res - The HTTP response object.
+ */
+function handleRegularMessage(event, res) {
+  const messageData = createMessage(event.user);
+  res.send(messageData);
+}
+
+/**
+ * Creates a card message with the user's avatar.
+ *
+ * @param {Object} user - The user who sent the message.
+ * @param {string} user.displayName - The user's display name.
+ * @param {string} user.avatarUrl - The URL of the user's avatar.
+ * @return {Object} - The card message object.
+ */
+function createMessage({displayName, avatarUrl}) {
+  return {
+    text: 'Here\'s your avatar',
+    cardsV2: [{
+      cardId: 'avatarCard',
+      card: {
+        name: 'Avatar Card',
+        header: {
+          title: `Hello ${displayName}!`,
+        },
+        sections: [{
+          widgets: [
+            {textParagraph: {text: 'Your avatar picture:'}},
+            {image: {imageUrl: avatarUrl}},
+          ],
+        }],
+      },
+    }],
+  };
+}
+// [END chat_avatar_app]
