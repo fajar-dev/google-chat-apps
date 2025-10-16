@@ -69,9 +69,9 @@ function handleChatAPIEvent(event) {
 /* ===================== SLASH COMMANDS ===================== */
 function handleSlashCommand(commandId, event) {
   switch (commandId) {
-    case 1: // /open-ticket
+    case 1: // /help
       return showHelpCard();
-    case 2: // /help
+    case 2: // /open-ticket
       return openTicketForm();
     default:
       return { text: `Unknown command ID: ${commandId}` };
@@ -80,9 +80,9 @@ function handleSlashCommand(commandId, event) {
 
 function handleSlashCommandChatAPI(commandId) {
   switch (commandId) {
-    case 1:
+    case 1: // /help
       return showHelpCard();
-      case 2:
+    case 2: // /open-ticket
       return openTicketFormChatAPI();
     default:
       return { text: `Unknown command ID: ${commandId}` };
@@ -184,17 +184,26 @@ function showHelpCard() {
       imageUrl: "https://www.nusa.net.id/kb/favicon.png",
     },
     sections: [{
-      widgets: [{
-        decoratedText: { 
-        text: "Hi! 👋 Feel free to use the following commands:",
-        wrapText: true
-      }
-      }, {
-        decoratedText: { 
-          text: "<b>💼 /open-ticket</b>: Open an engineer support ticket.", 
-          wrapText: true 
+      widgets: [
+        {
+          decoratedText: {
+            text: "Hi! 👋 Feel free to use the following commands:",
+            wrapText: true
+          }
+        },
+        {
+          decoratedText: {
+            text: "<b>💬 /help</b>: Show this help message.",
+            wrapText: true
+          }
+        },
+        {
+          decoratedText: {
+            text: "<b>💼 /open-ticket</b>: Open an engineer support ticket form.",
+            wrapText: true
+          }
         }
-      }]
+      ]
     }]
   };
 }
