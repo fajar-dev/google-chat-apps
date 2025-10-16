@@ -18,9 +18,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// === MAIN ENDPOINT ===
 app.post('/', async (req, res) => {
   const event = req.body;
-
   try {
     let response = {};
 
@@ -69,32 +69,10 @@ function handleChatAPIEvent(event) {
 /* ===================== SLASH COMMANDS ===================== */
 function handleSlashCommand(commandId, event) {
   switch (commandId) {
-    case 1:
-      return {
-        action: {
-          navigations: [{
-            pushCard: {
-              header: { title: "📇 Contact Manager", subtitle: "Your Personal Contact Assistant" },
-              sections: [{
-                widgets: [
-                  { textParagraph: { text: "<b>Welcome to Contact Manager!</b>" } },
-                  { textParagraph: { text: "Easily manage your personal and business contacts." } },
-                  {
-                    buttonList: {
-                      buttons: [
-                        { text: "Add Contact", onClick: { action: { function: "openInitialDialog" } } },
-                        { text: "Close", onClick: { action: { function: "closeCard" } } }
-                      ]
-                    }
-                  }
-                ]
-              }]
-            }
-          }]
-        }
-      };
-    case 2:
-      return openInitialDialog();
+    case 1: // /open-ticket
+      return openTicketForm();
+    case 2: // /help
+      return showHelpCard();
     default:
       return { text: `Unknown command ID: ${commandId}` };
   }
@@ -103,19 +81,9 @@ function handleSlashCommand(commandId, event) {
 function handleSlashCommandChatAPI(commandId) {
   switch (commandId) {
     case 1:
-      return {
-        text: "Manage your contacts 📇. Use `/addContact` to add one.",
-        accessoryWidgets: [{
-          buttonList: {
-            buttons: [{
-              text: "Add Contact",
-              onClick: { action: { function: "openInitialDialog", interaction: "OPEN_DIALOG" } }
-            }]
-          }
-        }]
-      };
+      return openTicketFormChatAPI();
     case 2:
-      return openInitialDialogChatAPI();
+      return showHelpCard();
     default:
       return { text: `Unknown command ID: ${commandId}` };
   }
@@ -124,40 +92,33 @@ function handleSlashCommandChatAPI(commandId) {
 /* ===================== CARD CLICK HANDLERS ===================== */
 function handleCardClick(fn, event) {
   switch (fn) {
-    case "openInitialDialog": return openInitialDialog();
-    case "openConfirmation": return openConfirmation(event);
-    case "submitForm": return submitForm(event);
-    case "closeCard": return { action: { navigations: [{ popToRoot: true }] } };
-    default: return { text: `Unknown function: ${fn}` };
-  }
-}
-
-function handleCardClickChatAPI(fn, event) {
-  switch (fn) {
-    case "openInitialDialog": return openInitialDialogChatAPI();
-    case "openConfirmation": return openConfirmationChatAPI(event);
-    case "submitForm": return submitFormChatAPI(event);
-    case "closeCard":
-      return {
-        actionResponse: { type: "UPDATE_MESSAGE" },
-        text: "Card closed."
-      };
+    case "submitTicket":
+      return submitTicket(event);
     default:
       return { text: `Unknown function: ${fn}` };
   }
 }
 
-/* ===================== FORM & CONFIRMATION ===================== */
-function openInitialDialog() {
+function handleCardClickChatAPI(fn, event) {
+  switch (fn) {
+    case "submitTicket":
+      return submitTicket(event);
+    default:
+      return { text: `Unknown function: ${fn}` };
+  }
+}
+
+/* ===================== FORM TIKET ===================== */
+function openTicketForm() {
   return {
     action: {
       navigations: [{
         pushCard: {
-          header: { title: "Add New Contact" },
+          header: { title: "🧾 Open Engineer Ticket" },
           sections: [{
-            widgets: CONTACT_FORM_WIDGETS.concat([{
+            widgets: TICKET_FORM_WIDGETS.concat([{
               buttonList: {
-                buttons: [{ text: "Review and Submit", onClick: { action: { function: "openConfirmation" } } }]
+                buttons: [{ text: "Submit Ticket", onClick: { action: { function: "submitTicket" } } }]
               }
             }])
           }]
@@ -167,7 +128,7 @@ function openInitialDialog() {
   };
 }
 
-function openInitialDialogChatAPI() {
+function openTicketFormChatAPI() {
   return {
     actionResponse: {
       type: "DIALOG",
@@ -175,10 +136,10 @@ function openInitialDialogChatAPI() {
         dialog: {
           body: {
             sections: [{
-              header: "Add new contact",
-              widgets: CONTACT_FORM_WIDGETS.concat([{
+              header: "Open Engineer Ticket",
+              widgets: TICKET_FORM_WIDGETS.concat([{
                 buttonList: {
-                  buttons: [{ text: "Review and Submit", onClick: { action: { function: "openConfirmation" } } }]
+                  buttons: [{ text: "Submit Ticket", onClick: { action: { function: "submitTicket" } } }]
                 }
               }])
             }]
@@ -189,70 +150,45 @@ function openInitialDialogChatAPI() {
   };
 }
 
-function openConfirmation(event) {
-  const name = getFormValue(event, "contactName") || "";
-  const birthdate = getFormValue(event, "contactBirthdate") || "";
-  const type = getFormValue(event, "contactType") || "";
+function submitTicket(event) {
+  const name = getFormValue(event, "reporterName");
+  const department = getFormValue(event, "department");
+  const desc = getFormValue(event, "issueDescription");
+  const priority = getFormValue(event, "priority");
 
-  if (!name) return { action: { notification: { text: "Please enter a contact name" } } };
-
-  return {
-    action: {
-      navigations: [{
-        pushCard: {
-          header: { title: "Confirm Contact" },
-          sections: [{
-            widgets: [
-              { textParagraph: { text: "<b>Confirm contact information:</b>" } },
-              { decoratedText: { topLabel: "Name", text: name } },
-              { decoratedText: { topLabel: "Birthday", text: convertMillisToDateString(birthdate) } },
-              { decoratedText: { topLabel: "Type", text: type || "Not specified" } },
-              {
-                buttonList: {
-                  buttons: [
-                    {
-                      text: "Submit",
-                      onClick: {
-                        action: {
-                          function: "submitForm",
-                          parameters: [
-                            { key: "contactName", value: name },
-                            { key: "contactBirthdate", value: birthdate.toString() },
-                            { key: "contactType", value: type }
-                          ]
-                        }
-                      }
-                    },
-                    { text: "Back", onClick: { action: { function: "openInitialDialog" } } }
-                  ]
-                }
-              }
-            ]
-          }]
-        }
-      }]
-    }
-  };
-}
-
-function submitForm(event) {
-  const contactName = getParameterValue(event, "contactName");
-  if (!contactName) {
-    return { action: { notification: { text: "❌ Please enter a name." } } };
+  if (!name || !desc) {
+    return { action: { notification: { text: "❌ Please fill all required fields." } } };
   }
 
-  const message = `✅ ${contactName} has been added to your contacts!`;
+  const message = `✅ Ticket submitted by ${name}\n📍 Department: ${department}\n⚙️ Priority: ${priority}\n📝 Issue: ${desc}`;
 
   return {
-    action: {
-      navigations: [{ popToRoot: true }],
-      notification: { text: message }
-    },
     text: message,
     cardsV2: [{
       card: {
-        header: { title: "Success!" },
-        sections: [{ widgets: [{ textParagraph: { text: message } }] }]
+        header: { title: "Ticket Submitted Successfully!" },
+        sections: [{
+          widgets: [{ textParagraph: { text: message.replace(/\n/g, "<br>") } }]
+        }]
+      }
+    }]
+  };
+}
+
+/* ===================== HELP CARD ===================== */
+function showHelpCard() {
+  return {
+    text: "🆘 Help Menu",
+    cardsV2: [{
+      card: {
+        header: { title: "🛠 Help - Engineer Bot" },
+        sections: [{
+          widgets: [
+            { textParagraph: { text: "Here are the available commands:" } },
+            { textParagraph: { text: "<b>/open-ticket</b> — Create a new engineer support ticket." } },
+            { textParagraph: { text: "<b>/help</b> — Show this help message." } }
+          ]
+        }]
       }
     }]
   };
@@ -265,70 +201,33 @@ function getFormValue(event, widgetName) {
   return input.stringInputs?.value?.[0] || input.dateInput?.msSinceEpoch || null;
 }
 
-function getParameterValue(event, key) {
-  return event.commonEventObject?.parameters?.find(p => p.key === key)?.value || null;
-}
-
-function convertMillisToDateString(millis) {
-  if (!millis) return 'No date specified';
-  try {
-    return new Date(Number(millis)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return 'Invalid date';
-  }
-}
-
-/* ===================== DEFAULT RESPONSES ===================== */
+/* ===================== DEFAULT RESPONSE ===================== */
 function getDefaultResponse() {
-  return {
-    text: "To add a contact, use /addContact command",
-    cardsV2: [{
-      card: {
-        sections: [{
-          widgets: [
-            { textParagraph: { text: "Use <b>/addContact</b> or click below:" } },
-            { buttonList: { buttons: [{ text: "Add Contact", onClick: { action: { function: "openInitialDialog" } } }] } }
-          ]
-        }]
-      }
-    }]
-  };
+  return showHelpCard();
 }
 
 function getDefaultResponseChatAPI() {
-  return {
-    text: "To add a contact, try `/addContact`",
-    cardsV2: [{
-      cardId: "defaultCard",
-      card: {
-        header: { title: "Contact Manager" },
-        sections: [{
-          widgets: [
-            { textParagraph: { text: "Use <b>/addContact</b> or click below:" } },
-            { buttonList: { buttons: [{ text: "Add Contact", onClick: { action: { function: "openInitialDialog" } } }] } }
-          ]
-        }]
-      }
-    }]
-  };
+  return showHelpCard();
 }
 
 /* ===================== SERVER ===================== */
-app.get('/', (_, res) => res.send('Google Chat App is running! (v4-clean)'));
+app.get('/', (_, res) => res.send('Google Chat Ticket Bot is running! 🚀'));
 app.listen(PORT, () => console.log(`[INFO] Server running on port ${PORT}`));
 
 /* ===================== FORM WIDGETS ===================== */
-const CONTACT_FORM_WIDGETS = [
-  { textInput: { name: "contactName", label: "First and last name", type: "SINGLE_LINE" } },
-  { dateTimePicker: { name: "contactBirthdate", label: "Birthdate", type: "DATE_ONLY" } },
+const TICKET_FORM_WIDGETS = [
+  { textInput: { name: "reporterName", label: "Your Name", type: "SINGLE_LINE" } },
+  { textInput: { name: "department", label: "Department", type: "SINGLE_LINE" } },
+  { textInput: { name: "issueDescription", label: "Issue Description", type: "MULTIPLE_LINE" } },
   {
     selectionInput: {
-      name: "contactType",
-      label: "Contact type",
+      name: "priority",
+      label: "Priority",
       type: "RADIO_BUTTON",
       items: [
-        { text: "Work", value: "Work" },
-        { text: "Personal", value: "Personal" }
+        { text: "Low", value: "Low" },
+        { text: "Medium", value: "Medium" },
+        { text: "High", value: "High" }
       ]
     }
   }
