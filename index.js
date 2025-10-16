@@ -135,45 +135,72 @@ function handleSlashCommand(commandId, event) {
   switch (commandId) {
     case 1:
       console.log('[DEBUG] Handling /about command');
-      // For Google Workspace Add-ons, return a simple text response with card
+      // Use the same format as /addContact (which works!)
       return {
-        text: "Contact Manager - Manage your personal and business contacts 📇",
-        cardsV2: [{
-          card: {
-            header: {
-              title: "Contact Manager",
-              subtitle: "Manage your contacts easily",
-              imageUrl: "https://fonts.gstatic.com/s/i/googlematerialicons/contacts/v14/48px.svg",
-              imageType: "CIRCLE"
-            },
-            sections: [{
-              widgets: [
-                {
-                  textParagraph: {
-                    text: "Welcome! You can:\n• Add new contacts\n• Manage personal and business contacts\n• Keep track of birthdays"
-                  }
-                },
-                {
-                  textParagraph: {
-                    text: "Use <b>/addContact</b> or click below:"
-                  }
-                },
-                {
-                  buttonList: {
-                    buttons: [{
-                      text: "Add Contact",
-                      onClick: {
-                        action: {
-                          function: "openInitialDialog"
-                        }
+        action: {
+          navigations: [{
+            pushCard: {
+              header: {
+                title: "📇 Contact Manager",
+                subtitle: "Your Personal Contact Assistant"
+              },
+              sections: [{
+                widgets: [
+                  {
+                    textParagraph: {
+                      text: "<b>Welcome to Contact Manager!</b>"
+                    }
+                  },
+                  {
+                    textParagraph: {
+                      text: "This app helps you manage your personal and business contacts easily."
+                    }
+                  },
+                  {
+                    decoratedText: {
+                      topLabel: "Features",
+                      text: "• Add new contacts\n• Track birthdays\n• Organize by type (Work/Personal)",
+                      startIcon: {
+                        iconUrl: "https://fonts.gstatic.com/s/i/googlematerialicons/star/v14/48px.svg"
                       }
-                    }]
+                    }
+                  },
+                  {
+                    decoratedText: {
+                      topLabel: "Getting Started",
+                      text: "Use /addContact command or click the button below",
+                      startIcon: {
+                        iconUrl: "https://fonts.gstatic.com/s/i/googlematerialicons/info/v14/48px.svg"
+                      }
+                    }
+                  },
+                  {
+                    buttonList: { 
+                      buttons: [
+                        {
+                          text: "Add Your First Contact",
+                          onClick: { 
+                            action: { 
+                              function: "openInitialDialog" 
+                            }
+                          }
+                        },
+                        {
+                          text: "Close",
+                          onClick: {
+                            action: {
+                              function: "closeCard"
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
-                }
-              ]
-            }]
-          }
-        }]
+                ]
+              }]
+            }
+          }]
+        }
       };
       
     case 2:
@@ -212,9 +239,11 @@ function handleSlashCommandChatAPI(commandId, event) {
           }
         }]
       };
+      break;
       
     case 2:
       return openInitialDialogChatAPI();
+      break;
       
     default:
       return {
@@ -242,6 +271,16 @@ function handleCardClick(functionName, event) {
       console.log('[DEBUG] Submitting form');
       return submitForm(event);
       
+    case "closeCard":
+      console.log('[DEBUG] Closing card');
+      return {
+        action: {
+          navigations: [{
+            popToRoot: true
+          }]
+        }
+      };
+      
     default:
       console.log('[WARNING] Unknown function:', functionName);
       return {
@@ -265,6 +304,15 @@ function handleCardClickChatAPI(functionName, event) {
       
     case "submitForm":
       return submitFormChatAPI(event);
+      
+    case "closeCard":
+      console.log('[DEBUG] Closing card');
+      return {
+        actionResponse: {
+          type: "UPDATE_MESSAGE"
+        },
+        text: "Card closed."
+      };
       
     default:
       return {
@@ -743,7 +791,7 @@ function convertMillisToDateString(millis) {
 // Health check endpoint
 app.get('/', (req, res) => {
   console.log('[DEBUG] Health check requested');
-  res.send('Google Chat App is running! (v3)');
+  res.send('Google Chat App is running! (v4 - Fixed /about command)');
 });
 
 app.listen(PORT, () => {
