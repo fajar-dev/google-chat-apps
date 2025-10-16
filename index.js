@@ -186,22 +186,12 @@ function showHelpCard() {
     sections: [{
       widgets: [{
         decoratedText: { 
-          text: "Hi! 👋 Feel free to use the following " + featureName + "s:",
-          wrapText: true
-        }
+        text: "Hi! 👋 Feel free to use the following commands:",
+        wrapText: true
+      }
       }, {
         decoratedText: { 
-          text: "<b>💬 /greeting</b>: Say Hello.", 
-          wrapText: true 
-        }
-      }, {
-        decoratedText: { 
-          text: "<b>🩸 /blood-stock</b>: Show current blood stock at UDD PMI Kota Medan.", 
-          wrapText: true 
-        }
-      }, {
-        decoratedText: { 
-          text: "<b>🚐 /mobile-unit</b>: Show today’s mobile unit schedule at UDD PMI Kota Medan.", 
+          text: "<b>💼 /open-ticket</b>: Open an engineer support ticket.", 
           wrapText: true 
         }
       }]
