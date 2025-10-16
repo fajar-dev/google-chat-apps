@@ -70,9 +70,9 @@ function handleChatAPIEvent(event) {
 function handleSlashCommand(commandId, event) {
   switch (commandId) {
     case 1: // /open-ticket
-      return openTicketForm();
-    case 2: // /help
       return showHelpCard();
+    case 2: // /help
+      return openTicketForm();
     default:
       return { text: `Unknown command ID: ${commandId}` };
   }
