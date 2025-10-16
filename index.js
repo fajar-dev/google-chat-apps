@@ -1,7 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-const port = 8080; // Pilih port yang sesuai
+// Gunakan port yang Anda pakai (misalnya 8080)
+const port = 8080; 
 
 // Middleware untuk memproses body permintaan dalam format JSON
 app.use(bodyParser.json());
@@ -11,37 +12,46 @@ app.post('/webhook', (req, res) => {
     const event = req.body;
     console.log('Event dari Google Chat diterima:', event);
 
-    let replyMessage = {
-        // Objek balasan akan selalu berupa pesan.
-        // Teks atau kartu, tergantung kebutuhan.
-    };
+    let replyMessage = {}; // Objek balasan default
 
+    // Ambil type event dan teks pesan dengan aman
+    const eventType = event.type;
+    const message = event.message || {};
+    const messageText = (message.text || '').trim().toLowerCase(); 
+
+    console.log('Event Type:', eventType);
+    console.log('Pesan Diterima:', messageText);
+    
     // --- LOGIKA RESPON BOT ---
 
-    // Memeriksa jenis event
-    if (event.type === 'MESSAGE') {
-        const messageText = event.message.text ? event.message.text.trim().toLowerCase() : '';
-
-        // Bot hanya akan merespons jika pesan menyebut (mention) bot, 
-        // atau jika itu adalah pesan langsung di ruang 1-ke-1.
-
-        // Logika untuk /about
+    // 1. Jika event bertipe PESAN
+    if (eventType === 'MESSAGE') {
+        
+        // Logika untuk /about (Prioritas pertama)
         if (messageText.includes('/about')) {
             replyMessage.text = "halo saya siap membantu anda";
+        
+        // Logika untuk balasan default (Jika bukan /about)
         } else {
-            // Balasan default jika pesan tidak dikenali
-            replyMessage.text = "Saya adalah bot Google Chat. Coba ketik `/about` untuk info.";
+            // Ini adalah balasan yang Anda minta untuk semua pesan lain
+            replyMessage.text = "saya adalah bot"; 
         }
-    } else if (event.type === 'ADDED_TO_SPACE') {
+        
+    // 2. Jika event bertipe DITAMBAHKAN KE RUANG
+    } else if (eventType === 'ADDED_TO_SPACE') {
         // Respon saat bot ditambahkan ke ruang
-        replyMessage.text = `Terima kasih telah menambahkan saya, ${event.user.displayName}! Saya siap membantu. Coba ketik @NamaBot /about.`;
-    } else {
-        // Respon default untuk event lain (misalnya REMOVED_FROM_SPACE, dll.)
-        return res.status(200).send({});
+        replyMessage.text = `Halo ${event.user.displayName}! Saya telah ditambahkan.`;
     }
+    // Untuk event lain (misalnya REMOVED_FROM_SPACE), replyMessage akan tetap kosong {}
 
     // Mengirim balasan ke Google Chat
-    res.status(200).json(replyMessage);
+    if (Object.keys(replyMessage).length > 0) {
+        // Jika ada pesan balasan, kirim JSON balasan
+        res.status(200).json(replyMessage);
+    } else {
+        // Jika tidak ada balasan, kirim status 200 OK dengan body kosong
+        res.status(200).send({});
+    }
 });
 
 // Server mulai mendengarkan
