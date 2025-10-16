@@ -178,11 +178,11 @@ function submitTicket(event) {
 /* ===================== HELP CARD ===================== */
 function showHelpCard() {
   return {
-    header: [{
+    header: {
       title: "Nusa Assistant",
       subtitle: "Nusa Ticketing Support Assistant",
       imageUrl: "https://www.nusa.net.id/kb/favicon.png",
-    }],
+    },
     sections: [{
       widgets: [{
         decoratedText: { 
