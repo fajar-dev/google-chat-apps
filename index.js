@@ -81,9 +81,9 @@ function handleSlashCommand(commandId, event) {
 function handleSlashCommandChatAPI(commandId) {
   switch (commandId) {
     case 1:
-      return openTicketFormChatAPI();
-    case 2:
       return showHelpCard();
+      case 2:
+      return openTicketFormChatAPI();
     default:
       return { text: `Unknown command ID: ${commandId}` };
   }
