@@ -178,18 +178,33 @@ function submitTicket(event) {
 /* ===================== HELP CARD ===================== */
 function showHelpCard() {
   return {
-    text: "🆘 Help Menu",
-    cardsV2: [{
-      card: {
-        header: { title: "🛠 Help - Engineer Bot" },
-        sections: [{
-          widgets: [
-            { textParagraph: { text: "Here are the available commands:" } },
-            { textParagraph: { text: "<b>/open-ticket</b> — Create a new engineer support ticket." } },
-            { textParagraph: { text: "<b>/help</b> — Show this help message." } }
-          ]
-        }]
-      }
+    header: [{
+      title: "Nusa Assistant",
+      subtitle: "Nusa Ticketing Support Assistant",
+      imageUrl: "https://www.nusa.net.id/kb/favicon.png",
+    }],
+    sections: [{
+      widgets: [{
+        decoratedText: { 
+          text: "Hi! 👋 Feel free to use the following " + featureName + "s:",
+          wrapText: true
+        }
+      }, {
+        decoratedText: { 
+          text: "<b>💬 /greeting</b>: Say Hello.", 
+          wrapText: true 
+        }
+      }, {
+        decoratedText: { 
+          text: "<b>🩸 /blood-stock</b>: Show current blood stock at UDD PMI Kota Medan.", 
+          wrapText: true 
+        }
+      }, {
+        decoratedText: { 
+          text: "<b>🚐 /mobile-unit</b>: Show today’s mobile unit schedule at UDD PMI Kota Medan.", 
+          wrapText: true 
+        }
+      }]
     }]
   };
 }
