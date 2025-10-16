@@ -69,10 +69,10 @@ function handleChatAPIEvent(event) {
 /* ===================== SLASH COMMANDS ===================== */
 function handleSlashCommand(commandId, event) {
   switch (commandId) {
-    case 1: // /help
-      return showHelpCard();
-    case 2: // /open-ticket
+    case 1: // /open-ticket
       return openTicketForm();
+    case 2: // /help
+      return showHelpCard();
     default:
       return { text: `Unknown command ID: ${commandId}` };
   }
@@ -80,10 +80,10 @@ function handleSlashCommand(commandId, event) {
 
 function handleSlashCommandChatAPI(commandId) {
   switch (commandId) {
-    case 1: // /help
-      return showHelpCard();
-    case 2: // /open-ticket
+    case 1:
       return openTicketFormChatAPI();
+    case 2:
+      return showHelpCard();
     default:
       return { text: `Unknown command ID: ${commandId}` };
   }
@@ -178,35 +178,41 @@ function submitTicket(event) {
 /* ===================== HELP CARD ===================== */
 function showHelpCard() {
   return {
-    header: {
-      title: "Nusa Assistant",
-      subtitle: "Nusa Ticketing Support Assistant",
-      imageUrl: "https://www.nusa.net.id/kb/favicon.png",
-    },
-    sections: [{
-      widgets: [
-        {
-          decoratedText: {
-            text: "Hi! 👋 Feel free to use the following commands:",
-            wrapText: true
-          }
+    text: "Hi! 👋 Here are the available commands:",
+    cardsV2: [{
+      cardId: "helpCard",
+      card: {
+        header: {
+          title: "Nusa Assistant",
+          subtitle: "Nusa Ticketing Support Assistant",
+          imageUrl: "https://www.nusa.net.id/kb/favicon.png",
         },
-        {
-          decoratedText: {
-            text: "<b>💬 /help</b>: Show this help message.",
-            wrapText: true
-          }
-        },
-        {
-          decoratedText: {
-            text: "<b>💼 /open-ticket</b>: Open an engineer support ticket form.",
-            wrapText: true
-          }
-        }
-      ]
+        sections: [{
+          widgets: [
+            {
+              textParagraph: {
+                text: "Use the following commands in chat:"
+              }
+            },
+            {
+              decoratedText: {
+                text: "<b>💼 /open-ticket</b>: Open an engineer support ticket.",
+                wrapText: true
+              }
+            },
+            {
+              decoratedText: {
+                text: "<b>💬 /help</b>: Show this help message.",
+                wrapText: true
+              }
+            }
+          ]
+        }]
+      }
     }]
   };
 }
+
 
 /* ===================== UTILITIES ===================== */
 function getFormValue(event, widgetName) {
