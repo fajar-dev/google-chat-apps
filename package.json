@@ -11,5 +11,6 @@
     "body-parser": "^2.2.0",
     "express": "^5.1.0",
     "@google-cloud/functions-framework": "^3.0.0"
-  }
+  },
+  "license": "Apache-2.0"
 }
