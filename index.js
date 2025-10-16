@@ -43,14 +43,16 @@ app.post('/', async (req, res) => {
       console.log('[DEBUG] Detected Google Workspace Add-ons format');
       response = handleChatEvent(event);
     } 
-    // Fallback for old format (if any)
+    // Fallback for Chat API format
     else if (event.type) {
-      console.log('[DEBUG] Detected old Chat API format');
-      response = handleOldFormatEvent(event);
+      console.log('[DEBUG] Detected Chat API format');
+      response = handleChatAPIEvent(event);
     }
     else {
       console.log('[WARNING] Unknown event format');
-      response = createTextResponse("Unknown event format");
+      response = {
+        text: "Unknown event format"
+      };
     }
     
     console.log('[DEBUG] Final Response:', JSON.stringify(response, null, 2));
@@ -59,7 +61,9 @@ app.post('/', async (req, res) => {
   } catch (error) {
     console.error('[ERROR] Error processing request:', error);
     console.error('[ERROR] Stack trace:', error.stack);
-    return res.status(500).json(createTextResponse(`Error: ${error.message}`));
+    return res.status(500).json({
+      text: `Error: ${error.message}`
+    });
   }
 });
 
@@ -94,11 +98,36 @@ function handleChatEvent(event) {
   
   // Default response for regular messages
   console.log('[DEBUG] Regular message, sending default response');
-  return getDefaultResponse(event);
+  return getDefaultResponse();
 }
 
 /**
- * Handle slash commands
+ * Handle Chat API format events
+ */
+function handleChatAPIEvent(event) {
+  console.log('[DEBUG] Processing Chat API event');
+  
+  if (event.type === 'MESSAGE') {
+    if (event.message?.slashCommand?.commandId) {
+      const commandId = event.message.slashCommand.commandId;
+      console.log('[DEBUG] Chat API slash command, ID:', commandId);
+      return handleSlashCommandChatAPI(commandId, event);
+    }
+    return getDefaultResponseChatAPI();
+  } 
+  else if (event.type === 'CARD_CLICKED') {
+    if (event.common?.invokedFunction) {
+      return handleCardClickChatAPI(event.common.invokedFunction, event);
+    }
+  }
+  
+  return {
+    text: "Unknown event type"
+  };
+}
+
+/**
+ * Handle slash commands for Google Workspace Add-ons
  */
 function handleSlashCommand(commandId, event) {
   console.log('[DEBUG] handleSlashCommand called with commandId:', commandId);
@@ -106,44 +135,37 @@ function handleSlashCommand(commandId, event) {
   switch (commandId) {
     case 1:
       console.log('[DEBUG] Handling /about command');
+      // For Google Workspace Add-ons, return a simple text response with card
       return {
+        text: "Contact Manager - Manage your personal and business contacts 📇",
         cardsV2: [{
-          cardId: "aboutCard",
           card: {
             header: {
               title: "Contact Manager",
-              subtitle: "Manage your personal and business contacts 📇",
-              imageUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/contact_page/default/48px.svg",
+              subtitle: "Manage your contacts easily",
+              imageUrl: "https://fonts.gstatic.com/s/i/googlematerialicons/contacts/v14/48px.svg",
               imageType: "CIRCLE"
             },
             sections: [{
               widgets: [
                 {
                   textParagraph: {
-                    text: "Welcome to Contact Manager! You can:\n• Add new contacts\n• Manage personal and business contacts\n• Keep track of birthdays"
+                    text: "Welcome! You can:\n• Add new contacts\n• Manage personal and business contacts\n• Keep track of birthdays"
                   }
                 },
                 {
                   textParagraph: {
-                    text: "To add a contact, use the slash command <b>/addContact</b> or click the button below:"
+                    text: "Use <b>/addContact</b> or click below:"
                   }
                 },
                 {
                   buttonList: {
                     buttons: [{
                       text: "Add Contact",
-                      icon: {
-                        iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/person_add/default/48px.svg"
-                      },
                       onClick: {
                         action: {
                           function: "openInitialDialog"
                         }
-                      },
-                      color: {
-                        red: 0.25,
-                        green: 0.52,
-                        blue: 0.96
                       }
                     }]
                   }
@@ -160,7 +182,44 @@ function handleSlashCommand(commandId, event) {
       
     default:
       console.log('[WARNING] Unknown command ID:', commandId);
-      return createTextResponse(`Unknown command ID: ${commandId}`);
+      return {
+        text: `Unknown command ID: ${commandId}`
+      };
+  }
+}
+
+/**
+ * Handle slash commands for Chat API
+ */
+function handleSlashCommandChatAPI(commandId, event) {
+  console.log('[DEBUG] handleSlashCommandChatAPI called with commandId:', commandId);
+  
+  switch (commandId) {
+    case 1:
+      return {
+        text: "Manage your personal and business contacts 📇. To add a contact, use the slash command `/addContact`.",
+        accessoryWidgets: [{
+          buttonList: { 
+            buttons: [{
+              text: "Add Contact",
+              onClick: { 
+                action: {
+                  function: "openInitialDialog",
+                  interaction: "OPEN_DIALOG"
+                }
+              }
+            }]
+          }
+        }]
+      };
+      
+    case 2:
+      return openInitialDialogChatAPI();
+      
+    default:
+      return {
+        text: `Unknown command ID: ${commandId}`
+      };
   }
 }
 
@@ -185,51 +244,100 @@ function handleCardClick(functionName, event) {
       
     default:
       console.log('[WARNING] Unknown function:', functionName);
-      return createTextResponse(`Unknown function: ${functionName}`);
+      return {
+        text: `Unknown function: ${functionName}`
+      };
   }
 }
 
 /**
- * Opens the initial dialog
+ * Handle card click for Chat API
+ */
+function handleCardClickChatAPI(functionName, event) {
+  console.log('[DEBUG] handleCardClickChatAPI called with function:', functionName);
+  
+  switch (functionName) {
+    case "openInitialDialog":
+      return openInitialDialogChatAPI();
+      
+    case "openConfirmation":
+      return openConfirmationChatAPI(event);
+      
+    case "submitForm":
+      return submitFormChatAPI(event);
+      
+    default:
+      return {
+        text: `Unknown function: ${functionName}`
+      };
+  }
+}
+
+/**
+ * Opens the initial dialog for Google Workspace Add-ons
  */
 function openInitialDialog() {
   console.log('[DEBUG] openInitialDialog called');
   
-  const response = {
-    renderActions: {
-      action: {
-        navigations: [{
-          pushCard: {
-            header: {
-              title: "Add New Contact"
-            },
+  return {
+    action: {
+      navigations: [{
+        pushCard: {
+          header: {
+            title: "Add New Contact"
+          },
+          sections: [{
+            widgets: CONTACT_FORM_WIDGETS.concat([{
+              buttonList: { 
+                buttons: [{
+                  text: "Review and Submit",
+                  onClick: { 
+                    action: { 
+                      function: "openConfirmation" 
+                    }
+                  }
+                }]
+              }
+            }])
+          }]
+        }
+      }]
+    }
+  };
+}
+
+/**
+ * Opens the initial dialog for Chat API
+ */
+function openInitialDialogChatAPI() {
+  console.log('[DEBUG] openInitialDialogChatAPI called');
+  
+  return {
+    actionResponse: {
+      type: "DIALOG",
+      dialogAction: {
+        dialog: {
+          body: {
             sections: [{
+              header: "Add new contact",
               widgets: CONTACT_FORM_WIDGETS.concat([{
                 buttonList: { 
                   buttons: [{
-                    text: "Review and Submit",
+                    text: "Review and submit",
                     onClick: { 
                       action: { 
                         function: "openConfirmation" 
                       }
-                    },
-                    color: {
-                      red: 0.25,
-                      green: 0.52,
-                      blue: 0.96
                     }
                   }]
                 }
               }])
             }]
           }
-        }]
+        }
       }
     }
   };
-  
-  console.log('[DEBUG] Dialog response:', JSON.stringify(response, null, 2));
-  return response;
 }
 
 /**
@@ -237,7 +345,6 @@ function openInitialDialog() {
  */
 function openConfirmation(event) {
   console.log('[DEBUG] openConfirmation called');
-  console.log('[DEBUG] Form inputs:', JSON.stringify(event.commonEventObject?.formInputs, null, 2));
   
   const name = getFormValue(event, "contactName") || "";
   const birthdate = getFormValue(event, "contactBirthdate") || "";
@@ -250,100 +357,142 @@ function openConfirmation(event) {
   
   if (!name) {
     return {
-      renderActions: {
-        action: {
-          notification: {
-            text: "Please enter a contact name"
-          }
+      action: {
+        notification: {
+          text: "Please enter a contact name"
         }
       }
     };
   }
   
-  const confirmationCard = {
-    renderActions: {
-      action: {
-        navigations: [{
-          pushCard: {
-            header: {
-              title: "Confirm Contact"
-            },
-            sections: [{
-              widgets: [
-                {
-                  textParagraph: {
-                    text: "<b>Please confirm the contact information:</b>"
-                  }
-                },
-                {
-                  decoratedText: {
-                    topLabel: "Name",
-                    text: name,
-                    startIcon: {
-                      iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/person/default/48px.svg"
-                    }
-                  }
-                },
-                {
-                  decoratedText: {
-                    topLabel: "Birthday",
-                    text: convertMillisToDateString(birthdate),
-                    startIcon: {
-                      iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/cake/default/48px.svg"
-                    }
-                  }
-                },
-                {
-                  decoratedText: {
-                    topLabel: "Contact Type",
-                    text: type || "Not specified",
-                    startIcon: {
-                      iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/category/default/48px.svg"
-                    }
-                  }
-                },
-                {
-                  buttonList: { 
-                    buttons: [
-                      {
-                        text: "Submit",
-                        onClick: { 
-                          action: {
-                            function: "submitForm",
-                            parameters: [
-                              { key: "contactName", value: name },
-                              { key: "contactBirthdate", value: birthdate.toString() },
-                              { key: "contactType", value: type }
-                            ]
-                          }
-                        },
-                        color: {
-                          red: 0.13,
-                          green: 0.66,
-                          blue: 0.32
-                        }
-                      },
-                      {
-                        text: "Back",
-                        onClick: {
-                          action: {
-                            function: "openInitialDialog"
-                          }
+  return {
+    action: {
+      navigations: [{
+        pushCard: {
+          header: {
+            title: "Confirm Contact"
+          },
+          sections: [{
+            widgets: [
+              {
+                textParagraph: {
+                  text: "<b>Please confirm the contact information:</b>"
+                }
+              },
+              {
+                decoratedText: {
+                  topLabel: "Name",
+                  text: name
+                }
+              },
+              {
+                decoratedText: {
+                  topLabel: "Birthday",
+                  text: convertMillisToDateString(birthdate)
+                }
+              },
+              {
+                decoratedText: {
+                  topLabel: "Contact Type",
+                  text: type || "Not specified"
+                }
+              },
+              {
+                buttonList: { 
+                  buttons: [
+                    {
+                      text: "Submit",
+                      onClick: { 
+                        action: {
+                          function: "submitForm",
+                          parameters: [
+                            { key: "contactName", value: name },
+                            { key: "contactBirthdate", value: birthdate.toString() },
+                            { key: "contactType", value: type }
+                          ]
                         }
                       }
-                    ]
-                  }
+                    },
+                    {
+                      text: "Back",
+                      onClick: {
+                        action: {
+                          function: "openInitialDialog"
+                        }
+                      }
+                    }
+                  ]
                 }
-              ]
-            }]
-          }
-        }]
-      }
+              }
+            ]
+          }]
+        }
+      }]
     }
   };
+}
+
+/**
+ * Opens confirmation for Chat API
+ */
+function openConfirmationChatAPI(event) {
+  console.log('[DEBUG] openConfirmationChatAPI called');
   
-  console.log('[DEBUG] Confirmation response:', JSON.stringify(confirmationCard, null, 2));
-  return confirmationCard;
+  const name = fetchFormValue(event, "contactName") || "";
+  const birthdate = fetchFormValue(event, "contactBirthdate") || "";
+  const type = fetchFormValue(event, "contactType") || "";
+  
+  const cardConfirmation = {
+    header: "Your contact",
+    widgets: [
+      { textParagraph: { text: "Confirm contact information and submit:" }},
+      { textParagraph: { text: `<b>Name:</b> ${name}` }},
+      { textParagraph: { text: `<b>Birthday:</b> ${convertMillisToDateString(birthdate)}` }},
+      { textParagraph: { text: `<b>Type:</b> ${type}` }},
+      {
+        buttonList: { 
+          buttons: [{
+            text: "Submit",
+            onClick: { 
+              action: {
+                function: "submitForm",
+                parameters: [
+                  { key: "contactName", value: name },
+                  { key: "contactBirthdate", value: birthdate.toString() },
+                  { key: "contactType", value: type }
+                ]
+              }
+            }
+          }]
+        }
+      }
+    ]
+  };
+
+  if (event.isDialogEvent) {
+    return {
+      action_response: {
+        type: "DIALOG",
+        dialogAction: { 
+          dialog: { 
+            body: { 
+              sections: [cardConfirmation]
+            }
+          }
+        }
+      }
+    };
+  }
+
+  return {
+    actionResponse: { type: "UPDATE_MESSAGE" },
+    privateMessageViewer: event.user,
+    cardsV2: [{
+      card: { 
+        sections: [cardConfirmation]
+      }
+    }]
+  };
 }
 
 /**
@@ -351,97 +500,98 @@ function openConfirmation(event) {
  */
 function submitForm(event) {
   console.log('[DEBUG] submitForm called');
-  console.log('[DEBUG] Parameters:', JSON.stringify(event.commonEventObject?.parameters, null, 2));
   
   const contactName = getParameterValue(event, "contactName");
-  const contactBirthdate = getParameterValue(event, "contactBirthdate");
-  const contactType = getParameterValue(event, "contactType");
-  
-  console.log('[DEBUG] Contact details:');
-  console.log('  Name:', contactName);
-  console.log('  Birthdate:', contactBirthdate);
-  console.log('  Type:', contactType);
+  console.log('[DEBUG] Contact name:', contactName);
   
   if (!contactName) {
-    console.log('[DEBUG] No contact name, returning error');
     return {
-      renderActions: {
-        action: {
-          notification: {
-            text: "❌ Don't forget to name your new contact!"
+      action: {
+        notification: {
+          text: "❌ Don't forget to name your new contact!"
+        }
+      }
+    };
+  }
+  
+  const confirmationMessage = `✅ ${contactName} has been added to your contacts!`;
+  
+  return {
+    action: {
+      navigations: [{
+        popToRoot: true
+      }],
+      notification: {
+        text: confirmationMessage
+      }
+    },
+    text: confirmationMessage,
+    cardsV2: [{
+      card: {
+        header: {
+          title: "Success!"
+        },
+        sections: [{
+          widgets: [{
+            textParagraph: {
+              text: confirmationMessage
+            }
+          }]
+        }]
+      }
+    }]
+  };
+}
+
+/**
+ * Submit form for Chat API
+ */
+function submitFormChatAPI(event) {
+  console.log('[DEBUG] submitFormChatAPI called');
+  
+  const contactName = event.common.parameters?.["contactName"];
+  
+  if (!contactName && event.dialogEventType === "SUBMIT_DIALOG") {
+    return {
+      actionResponse: {
+        type: "DIALOG",
+        dialogAction: {
+          actionStatus: {
+            statusCode: "INVALID_ARGUMENT",
+            userFacingMessage: "Don't forget to name your new contact!"
           }
         }
       }
     };
   }
   
-  console.log('[DEBUG] Form submitted successfully');
-  const confirmationMessage = `✅ ${contactName} has been added to your contacts!`;
+  if (!contactName) {
+    return {
+      privateMessageViewer: event.user,
+      text: "Don't forget to name your new contact!"
+    };
+  }
+
+  const confirmationMessage = `✅ ${contactName} has been added to your contacts.`;
   
-  return {
-    renderActions: {
-      action: {
-        navigations: [{
-          popToRoot: true
-        }],
-        notification: {
-          text: confirmationMessage
+  if (event.dialogEventType === "SUBMIT_DIALOG") {
+    return {
+      actionResponse: {
+        type: "DIALOG",
+        dialogAction: {
+          actionStatus: {
+            statusCode: "OK",
+            userFacingMessage: `Success ${contactName}`
+          }
         }
       }
-    },
-    cardsV2: [{
-      cardId: "successCard",
-      card: {
-        header: {
-          title: "Contact Added Successfully",
-          imageUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/check_circle/default/48px.svg",
-          imageType: "CIRCLE"
-        },
-        sections: [{
-          widgets: [
-            {
-              decoratedText: {
-                topLabel: "Name",
-                text: contactName,
-                startIcon: {
-                  iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/person/default/48px.svg"
-                }
-              }
-            },
-            {
-              decoratedText: {
-                topLabel: "Birthday",
-                text: convertMillisToDateString(contactBirthdate),
-                startIcon: {
-                  iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/cake/default/48px.svg"
-                }
-              }
-            },
-            {
-              decoratedText: {
-                topLabel: "Type",
-                text: contactType || "Not specified",
-                startIcon: {
-                  iconUrl: "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/category/default/48px.svg"
-                }
-              }
-            },
-            {
-              buttonList: {
-                buttons: [{
-                  text: "Add Another Contact",
-                  onClick: {
-                    action: {
-                      function: "openInitialDialog"
-                    }
-                  }
-                }]
-              }
-            }
-          ]
-        }]
-      }
-    }]
+    };
+  }
+  
+  return {
+    actionResponse: { type: "NEW_MESSAGE" },
+    privateMessageViewer: event.user,
+    text: confirmationMessage
   };
 }
 
@@ -451,28 +601,39 @@ function submitForm(event) {
 function getFormValue(event, widgetName) {
   console.log(`[DEBUG] Getting form value for: ${widgetName}`);
   
-  // Check in commonEventObject.formInputs
   if (event.commonEventObject?.formInputs?.[widgetName]) {
     const formInput = event.commonEventObject.formInputs[widgetName];
     console.log(`[DEBUG] Found form input:`, JSON.stringify(formInput, null, 2));
     
-    // String inputs
     if (formInput.stringInputs?.value?.[0]) {
       return formInput.stringInputs.value[0];
     }
     
-    // Date inputs  
     if (formInput.dateInput?.msSinceEpoch) {
       return formInput.dateInput.msSinceEpoch;
-    }
-    
-    // Selection inputs
-    if (formInput.stringInputs?.value?.[0]) {
-      return formInput.stringInputs.value[0];
     }
   }
   
   console.log(`[DEBUG] No value found for: ${widgetName}`);
+  return null;
+}
+
+/**
+ * Fetch form value for Chat API
+ */
+function fetchFormValue(event, widgetName) {
+  const formItem = event.common?.formInputs?.[widgetName];
+  
+  if (!formItem) return null;
+  
+  if (formItem.hasOwnProperty("stringInputs")) {
+    return formItem.stringInputs.value?.[0] || null;
+  }
+  
+  if (formItem.hasOwnProperty("dateInput")) {
+    return formItem.dateInput.msSinceEpoch || null;
+  }
+  
   return null;
 }
 
@@ -482,7 +643,6 @@ function getFormValue(event, widgetName) {
 function getParameterValue(event, key) {
   console.log(`[DEBUG] Getting parameter value for: ${key}`);
   
-  // Check in commonEventObject.parameters
   if (event.commonEventObject?.parameters) {
     for (const param of event.commonEventObject.parameters) {
       if (param.key === key) {
@@ -497,60 +657,29 @@ function getParameterValue(event, key) {
 }
 
 /**
- * Get default response for regular messages
+ * Get default response
  */
-function getDefaultResponse(event) {
+function getDefaultResponse() {
   return {
+    text: "To add a contact, use /addContact command",
     cardsV2: [{
-      cardId: "defaultCard",
-      card: {
-        header: {
-          title: "Contact Manager",
-          subtitle: "Add and manage your contacts"
-        },
-        sections: [{
-          widgets: [
-            {
-              textParagraph: {
-                text: "To add a contact, try <b>/addContact</b> or click the button below:"
-              }
-            },
-            {
-              buttonList: { 
-                buttons: [{
-                  text: "Add Contact",
-                  onClick: { 
-                    action: {
-                      function: "openInitialDialog"
-                    }
-                  },
-                  color: {
-                    red: 0.25,
-                    green: 0.52,
-                    blue: 0.96
-                  }
-                }]
-              }
-            }
-          ]
-        }]
-      }
-    }]
-  };
-}
-
-/**
- * Create a simple text response
- */
-function createTextResponse(text) {
-  return {
-    cardsV2: [{
-      cardId: "textCard",
       card: {
         sections: [{
           widgets: [{
             textParagraph: {
-              text: text
+              text: "Use <b>/addContact</b> or click below:"
+            }
+          },
+          {
+            buttonList: { 
+              buttons: [{
+                text: "Add Contact",
+                onClick: { 
+                  action: {
+                    function: "openInitialDialog"
+                  }
+                }
+              }]
             }
           }]
         }]
@@ -560,26 +689,39 @@ function createTextResponse(text) {
 }
 
 /**
- * Handle old format events (fallback)
+ * Get default response for Chat API
  */
-function handleOldFormatEvent(event) {
-  console.log('[DEBUG] Processing old format event');
-  
-  if (event.type === 'MESSAGE') {
-    // Handle old MESSAGE format
-    if (event.message?.slashCommand?.commandId) {
-      return handleSlashCommand(event.message.slashCommand.commandId, event);
-    }
-    return getDefaultResponse(event);
-  } 
-  else if (event.type === 'CARD_CLICKED') {
-    // Handle old CARD_CLICKED format
-    if (event.common?.invokedFunction) {
-      return handleCardClick(event.common.invokedFunction, event);
-    }
-  }
-  
-  return createTextResponse("Unknown event type");
+function getDefaultResponseChatAPI() {
+  return {
+    text: "To add a contact, try `/addContact`",
+    cardsV2: [{
+      cardId: "defaultCard",
+      card: {
+        header: {
+          title: "Contact Manager"
+        },
+        sections: [{
+          widgets: [{
+            textParagraph: {
+              text: "Use <b>/addContact</b> or click below:"
+            }
+          },
+          {
+            buttonList: { 
+              buttons: [{
+                text: "Add Contact",
+                onClick: { 
+                  action: {
+                    function: "openInitialDialog"
+                  }
+                }
+              }]
+            }
+          }]
+        }]
+      }
+    }]
+  };
 }
 
 /**
@@ -601,14 +743,14 @@ function convertMillisToDateString(millis) {
 // Health check endpoint
 app.get('/', (req, res) => {
   console.log('[DEBUG] Health check requested');
-  res.send('Google Chat App is running! (v2)');
+  res.send('Google Chat App is running! (v3)');
 });
 
 app.listen(PORT, () => {
   console.log('====================================');
   console.log(`[INFO] Server is running on port ${PORT}`);
   console.log(`[INFO] Timestamp: ${new Date().toISOString()}`);
-  console.log('[INFO] Using Google Workspace Add-ons format');
+  console.log('[INFO] Supporting both Chat API and Google Workspace Add-ons formats');
   console.log('====================================');
 });
 
