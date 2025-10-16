@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-const port = 3000; // Pilih port yang sesuai
+const port = 8080; // Pilih port yang sesuai
 
 // Middleware untuk memproses body permintaan dalam format JSON
 app.use(bodyParser.json());
