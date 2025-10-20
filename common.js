@@ -98,14 +98,37 @@ function submitTicket(event) {
  */
 function help() {
   return {
-    header: addOnCardHeader(),
-    sections: [{
-      widgets: [
-        { decoratedText: { text: "👋 Hi! Here are the available commands:", wrapText: true } },
-        { decoratedText: { text: "<b>💬 /help</b>: Show this help message.", wrapText: true } },
-        { decoratedText: { text: "<b>💼 /open-ticket</b>: Open an engineer support ticket form.", wrapText: true } }
-      ]
-    }]
+    cardsV2: [
+      {
+        card: {
+          header: addOnCardHeader(),
+          sections: [
+            {
+              widgets: [
+                {
+                  decoratedText: {
+                    text: "👋 Hi! Here are the available commands:",
+                    wrapText: true,
+                  },
+                },
+                {
+                  decoratedText: {
+                    text: "<b>💬 /help</b>: Show this help message.",
+                    wrapText: true,
+                  },
+                },
+                {
+                  decoratedText: {
+                    text: "<b>💼 /open-ticket</b>: Open an engineer support ticket form.",
+                    wrapText: true,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
   };
 }
 
